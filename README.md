@@ -1,7 +1,7 @@
 Akka Analytics
 ==============
 
-Large-scala event processing with [Akka Persistence](http://doc.akka.io/docs/akka/2.3.4/scala/persistence.html) and [Apache Spark](http://spark.apache.org/). At the moment you can 
+Large-scale event processing with [Akka Persistence](http://doc.akka.io/docs/akka/2.3.4/scala/persistence.html) and [Apache Spark](http://spark.apache.org/). At the moment you can 
 
 - batch-process events from an [Akka Persistence Cassandra](https://github.com/krasserm/akka-persistence-cassandra) journal as Spark `RDD`.
 - stream-process events from an [Akka Persistence Kafka](https://github.com/krasserm/akka-persistence-kafka) journal as Spark Streaming `DStream`. 
@@ -23,7 +23,7 @@ Dependencies
       "org.apache.spark" %% "spark-streaming-kafka" % "1.0.1"
     )
 
-The reason for the `intransitive()` inclusion of `akka-persistence-experimental` and `akka-persistence-kafka` is that the [Spark Cassandra Connector](https://github.com/datastax/spark-cassandra-connector) and Spark Streaming depend on Akka 2.2.x but we additionally require (de)serializers and class definitions from these dependencies. This is a temporary hack until Spark upgrades to Akka 2.3.x but `akka-persistence-experimental` 2.3.4 seems to work well with the serialization infrastructure of Akka 2.2.x. 
+The reason for the `intransitive()` inclusion of `akka-persistence-experimental` and `akka-persistence-kafka` is that Spark depends on Akka 2.2.x but we additionally require (de)serializers and class definitions from these dependencies. This is a temporary hack until Spark upgrades to Akka 2.3.x but `akka-persistence-experimental` 2.3.4 seems to work well with the serialization infrastructure of Akka 2.2.x. 
 
 Event batch processing
 ----------------------
