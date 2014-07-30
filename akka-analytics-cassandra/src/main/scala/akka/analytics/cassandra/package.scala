@@ -1,6 +1,7 @@
 package akka.analytics
 
 import scala.reflect.runtime.universe._
+import scala.util._
 
 import akka.actor.ActorSystem
 import akka.persistence.PersistentRepr
@@ -13,6 +14,8 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 package object cassandra {
+  private case object Ignore
+
   implicit object JournalEntryTypeConverter extends TypeConverter[PersistentRepr] {
     val converter = implicitly[TypeConverter[Array[Byte]]]
 
@@ -21,9 +24,11 @@ package object cassandra {
     @transient lazy val serial = SerializationExtension(system)
 
     def targetTypeTag = implicitly[TypeTag[PersistentRepr]]
-    def convert(obj: Any): PersistentRepr = converter.convert(obj) match {
-      case bytes if bytes.length == 1 => PersistentRepr(null, sequenceNr = -1L)
-      case bytes                      => serial.deserialize(bytes, classOf[PersistentRepr]).get.update(sender = null)
+    def convert(obj: Any): PersistentRepr = deserialize(converter.convert(obj))
+
+    def deserialize(bytes: Array[Byte]): PersistentRepr = serial.deserialize(bytes, classOf[PersistentRepr]) match {
+      case Success(p) => p.update(sender = null)
+      case Failure(_) => PersistentRepr(Ignore) // headers, confirmations, etc ...
     }
   }
 
@@ -31,10 +36,10 @@ package object cassandra {
     val keyspace = context.getConf.get("spark.cassandra.journal.keyspace", "akka")
     val table = context.getConf.get("spark.cassandra.journal.table", "messages")
 
-    val journalKeyEventPair = (persistenceId: String, partition: Long, sequenceNr: Long, marker: String, message: PersistentRepr) =>
-      (JournalKey(persistenceId, partition, sequenceNr, marker), message.payload)
+    val journalKeyEventPair = (persistenceId: String, partition: Long, sequenceNr: Long, message: PersistentRepr) =>
+      (JournalKey(persistenceId, partition, sequenceNr), message.payload)
 
     def eventTable(): RDD[(JournalKey, Any)] =
-      context.cassandraTable(keyspace, table).as(journalKeyEventPair).filter(_._1.marker == "A")
+      context.cassandraTable(keyspace, table).select("processor_id", "partition_nr", "sequence_nr", "message").as(journalKeyEventPair).filter(_._2 != Ignore)
   }
 }

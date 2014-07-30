@@ -1,6 +1,6 @@
 package akka.analytics.cassandra
 
-case class JournalKey(persistenceId: String, partition: Long, sequenceNr: Long, marker: String)
+case class JournalKey(persistenceId: String, partition: Long, sequenceNr: Long)
 
 object JournalKey {
   implicit object JournalKeyOrdering extends Ordering[JournalKey] {
