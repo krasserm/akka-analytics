@@ -6,7 +6,7 @@ Large-scale event processing with [Akka Persistence](http://doc.akka.io/docs/akk
 - batch-process events from an [Akka Persistence Cassandra](https://github.com/krasserm/akka-persistence-cassandra) journal as Spark `RDD`.
 - stream-process events from an [Akka Persistence Kafka](https://github.com/krasserm/akka-persistence-kafka) journal as Spark Streaming `DStream`. 
 
-This project is very much work in progress.
+This project is in **early preview** state. Development is currently suspended and will continue as soon as Spark upgrades to Akka 2.3.x (see also section [Dependencies](#dependencies)).
 
 Dependencies
 ------------
@@ -23,7 +23,7 @@ Dependencies
       "org.apache.spark" %% "spark-streaming-kafka" % "1.0.1"
     )
 
-The reason for the `intransitive()` inclusion of `akka-persistence-experimental` and `akka-persistence-kafka` is that Spark depends on Akka 2.2.x but we additionally require (de)serializers and class definitions from these dependencies. This is a temporary hack until Spark upgrades to Akka 2.3.x but `akka-persistence-experimental` 2.3.4 seems to work well with the serialization infrastructure of Akka 2.2.x. 
+Spark currently depends on Akka 2.2.x but Akka Persistence requires Akka 2.3.x which is binary incompatible with Akka 2.2.x. With an `intransitive()` inclusion of `akka-persistence-experimental` and `akka-persistence-kafka` all de-serializers and class definitions needed to process logged events are included but not Akka 2.3.x itself. The de-serializers of Akka Persistence 2.3.x work well with the serialization infrastructure of Akka 2.2.x which allows for some running examples but further development and production use is only possible after Spark upgrades to Akka 2.3.x (see also [SPARK-2707](https://issues.apache.org/jira/browse/SPARK-2707) and [SPARK-2805](https://issues.apache.org/jira/browse/SPARK-2805)).
 
 Event batch processing
 ----------------------
