@@ -2,7 +2,7 @@ name := "akka-analytics"
 
 organization in ThisBuild := "com.github.krasserm"
 
-version in ThisBuild := "0.3-SNAPSHOT"
+version in ThisBuild := "0.2"
 
 scalaVersion in ThisBuild := "2.10.4"
 
