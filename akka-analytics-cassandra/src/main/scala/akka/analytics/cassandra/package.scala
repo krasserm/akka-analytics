@@ -1,14 +1,11 @@
 package akka.analytics
 
-import scala.reflect.runtime.universe._
-import scala.util._
-
 import akka.actor.ActorSystem
 import akka.persistence.PersistentRepr
 import akka.serialization.SerializationExtension
 
 import com.datastax.spark.connector._
-import com.datastax.spark.connector.types.TypeConverter
+import com.datastax.spark.connector.types._
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -17,6 +14,9 @@ package object cassandra {
   private case object Ignore
 
   implicit object JournalEntryTypeConverter extends TypeConverter[PersistentRepr] {
+    import scala.reflect.runtime.universe._
+    import scala.util._
+
     val converter = implicitly[TypeConverter[Array[Byte]]]
 
     // FIXME: how to properly obtain an ActorSystem in Spark tasks?
@@ -24,13 +24,17 @@ package object cassandra {
     @transient lazy val serial = SerializationExtension(system)
 
     def targetTypeTag = implicitly[TypeTag[PersistentRepr]]
-    def convert(obj: Any): PersistentRepr = deserialize(converter.convert(obj))
+    def convertPF = {
+      case obj => deserialize(converter.convert(obj))
+    }
 
     def deserialize(bytes: Array[Byte]): PersistentRepr = serial.deserialize(bytes, classOf[PersistentRepr]) match {
       case Success(p) => p.update(sender = null)
       case Failure(_) => PersistentRepr(Ignore) // headers, confirmations, etc ...
     }
   }
+
+  TypeConverter.registerConverter(JournalEntryTypeConverter)
 
   implicit class JournalSparkContext(context: SparkContext) {
     val keyspace = context.getConf.get("spark.cassandra.journal.keyspace", "akka")
