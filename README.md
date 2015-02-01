@@ -21,7 +21,7 @@ Dependencies
 Event batch processing
 ----------------------
 
-With `akka-analytics-cassandra` you can expose and process events written by **all** persistent actors as [resilient distributed dataset](http://spark.apache.org/docs/latest/programming-guide.html#resilient-distributed-datasets-rdds) (`RDD`). It uses the [Spark Cassandra Connector](https://github.com/datastax/spark-cassandra-connector) to fetch data from the Cassandra journal. Here's a primitive example (details [here](https://github.com/krasserm/akka-analytics/blob/master/akka-analytics-kafka/src/test/scala/akka/analytics/kafka/IntegrationSpec.scala)):
+With `akka-analytics-cassandra` you can expose and process events written by **all** persistent actors as [resilient distributed dataset](http://spark.apache.org/docs/latest/programming-guide.html#resilient-distributed-datasets-rdds) (`RDD`). It uses the [Spark Cassandra Connector](https://github.com/datastax/spark-cassandra-connector) to fetch data from the Cassandra journal. Here's a primitive example (details [here](https://github.com/krasserm/akka-analytics/blob/master/akka-analytics-cassandra/src/test/scala/akka/analytics/cassandra/IntegrationSpec.scala)):
 
  ```scala
 import org.apache.spark.rdd.RDD
@@ -60,7 +60,7 @@ Events for a given `persistenceId` are partitioned across nodes in the Cassandra
 Event stream processing
 -----------------------
 
-With `akka-analytics-kafka` you can expose and process events written by **all** persistent actors (more specific, from any [user-defined topic](https://github.com/krasserm/akka-persistence-kafka#user-defined-topics)) as [discretized stream](http://spark.apache.org/docs/latest/streaming-programming-guide.html#dstreams) (`DStream`). Here's a primitive example (details [here](https://github.com/krasserm/akka-analytics/blob/master/akka-analytics-cassandra/src/test/scala/akka/analytics/cassandra/IntegrationSpec.scala)):
+With `akka-analytics-kafka` you can expose and process events written by **all** persistent actors (more specific, from any [user-defined topic](https://github.com/krasserm/akka-persistence-kafka#user-defined-topics)) as [discretized stream](http://spark.apache.org/docs/latest/streaming-programming-guide.html#dstreams) (`DStream`). Here's a primitive example (details [here](https://github.com/krasserm/akka-analytics/blob/master/akka-analytics-kafka/src/test/scala/akka/analytics/kafka/IntegrationSpec.scala)):
 
 ```scala
 import org.apache.spark.SparkConf
