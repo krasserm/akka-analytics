@@ -110,3 +110,7 @@ case class Event(persistenceId: String, sequenceNr: Long, data: Any)
 
 The stream of events (written by all persistent actors) is partially ordered i.e. events with the same `persistenceId` are ordered by `sequenceNr` whereas the ordering of events with different `persistenceId` is not defined. Details about Kafka consumer `params` are described [here](http://kafka.apache.org/documentation.html#consumerconfigs).
 
+Custom deserialization
+----------------------
+
+See [this ticket](https://github.com/krasserm/akka-analytics/issues/2#issuecomment-75361313) for details.
