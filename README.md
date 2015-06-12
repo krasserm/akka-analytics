@@ -24,12 +24,16 @@ Event batch processing
 With `akka-analytics-cassandra` you can expose and process events written by **all** persistent actors as [resilient distributed dataset](http://spark.apache.org/docs/latest/programming-guide.html#resilient-distributed-datasets-rdds) (`RDD`). It uses the [Spark Cassandra Connector](https://github.com/datastax/spark-cassandra-connector) to fetch data from the Cassandra journal. Here's a primitive example (details [here](https://github.com/krasserm/akka-analytics/blob/master/akka-analytics-cassandra/src/test/scala/akka/analytics/cassandra/IntegrationSpec.scala)):
 
  ```scala
+import akka.actor.ActorSystem
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 
 import akka.analytics.cassandra._
+
+implicit val system = ActorSystem("example")
 
 val conf = new SparkConf()
   .setAppName("CassandraExample")
@@ -39,7 +43,7 @@ val conf = new SparkConf()
 val sc = new SparkContext(conf)
 
 // expose journaled Akka Persistence events as RDD
-val rdd: RDD[(JournalKey, Any)] = sc.eventTable(keyspace = "akka", table = "messages").cache()
+val rdd: RDD[(JournalKey, Any)] = sc.eventTable().cache()
 
 // and do some processing ... 
 rdd.sortByKey().map(...).filter(...).collect().foreach(println)

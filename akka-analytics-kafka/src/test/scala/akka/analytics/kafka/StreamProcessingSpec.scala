@@ -16,7 +16,7 @@ import org.apache.spark.streaming._
 import org.apache.spark.streaming.dstream.DStream
 import org.scalatest._
 
-object IntegrationSpec {
+object StreamProcessingSpec {
   val akkaConfig = ConfigFactory.parseString(
     """
       |akka.persistence.journal.plugin = "kafka-journal"
@@ -54,9 +54,9 @@ object IntegrationSpec {
   }
 }
 
-import IntegrationSpec._
+import StreamProcessingSpec._
 
-class IntegrationSpec extends TestKit(ActorSystem("test", akkaConfig)) with WordSpecLike with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
+class StreamProcessingSpec extends TestKit(ActorSystem("test", akkaConfig)) with WordSpecLike with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
   var server: TestServer = _
   var ssc: StreamingContext = _
 

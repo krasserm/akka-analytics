@@ -1,12 +1,11 @@
 package akka.analytics.cassandra
 
-import akka.persistence.PersistentActor
-import com.typesafe.config.ConfigFactory
-
-import scala.concurrent.duration._
-
 import akka.actor._
+import akka.persistence.PersistentActor
+import akka.serialization.Serializer
 import akka.testkit._
+
+import com.typesafe.config.ConfigFactory
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkConf
@@ -14,7 +13,9 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.scalatest._
 
-object IntegrationSpec {
+import scala.concurrent.duration._
+
+object BatchProcessingSpec {
   val akkaConfig = ConfigFactory.parseString(
     """
       |akka.persistence.journal.plugin = "cassandra-journal"
@@ -35,8 +36,8 @@ object IntegrationSpec {
     override val persistenceId: String = "test"
 
     override def receiveCommand: Receive = {
-      case s: String => persist(s) {
-        case s: String => probe ! s
+      case msg => persist(msg) {
+        case evt => probe ! evt
       }
     }
 
@@ -46,15 +47,17 @@ object IntegrationSpec {
   }
 }
 
-import IntegrationSpec._
+import BatchProcessingSpec._
 
-class IntegrationSpec extends TestKit(ActorSystem("test", akkaConfig)) with WordSpecLike with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
+class BatchProcessingSpec extends TestKit(ActorSystem("test", akkaConfig)) with WordSpecLike with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
+  val sparkContext = new SparkContext(sparkConfig)
 
   override protected def beforeAll(): Unit = {
     CassandraServer.start(60.seconds)
   }
 
   override protected def afterAll(): Unit = {
+    sparkContext.stop()
     TestKit.shutdownActorSystem(system)
     CassandraServer.stop()
   }
@@ -67,8 +70,7 @@ class IntegrationSpec extends TestKit(ActorSystem("test", akkaConfig)) with Word
       1 to num foreach { i => actor ! s"A-${i}" }
       1 to num foreach { i => expectMsg(s"A-${i}") }
 
-      val sc = new SparkContext(sparkConfig)
-      val rdd: RDD[(JournalKey, Any)] = sc.eventTable().cache()
+      val rdd: RDD[(JournalKey, Any)] = sparkContext.eventTable().cache()
 
       val actual = rdd.sortByKey().collect()
       val expected = 1 to num map { i =>

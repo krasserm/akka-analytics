@@ -6,6 +6,7 @@ import akka.serialization.SerializationExtension
 
 import com.datastax.spark.connector._
 import com.datastax.spark.connector.types._
+import com.typesafe.config.Config
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -13,14 +14,13 @@ import org.apache.spark.rdd.RDD
 package object cassandra {
   private case object Ignore
 
-  implicit object JournalEntryTypeConverter extends TypeConverter[PersistentRepr] {
+  class JournalEntryTypeConverter(config: Config) extends TypeConverter[PersistentRepr] {
     import scala.reflect.runtime.universe._
     import scala.util._
 
     val converter = implicitly[TypeConverter[Array[Byte]]]
 
-    // FIXME: how to properly obtain an ActorSystem in Spark tasks?
-    @transient lazy val system = ActorSystem("TypeConverter")
+    @transient lazy val system = ActorSystem("TypeConverter", config)
     @transient lazy val serial = SerializationExtension(system)
 
     def targetTypeTag = implicitly[TypeTag[PersistentRepr]]
@@ -34,13 +34,19 @@ package object cassandra {
     }
   }
 
-  TypeConverter.registerConverter(JournalEntryTypeConverter)
 
-  implicit class JournalSparkContext(context: SparkContext) {
-    val journalKeyEventPair = (persistenceId: String, partition: Long, sequenceNr: Long, message: PersistentRepr) =>
+  implicit class JournalSparkContext(context: SparkContext)(implicit system: ActorSystem) {
+    private val keyspace = system.settings.config.getString("cassandra-journal.keyspace")
+    private val table = system.settings.config.getString("cassandra-journal.table")
+
+    private val journalKeyEventPair = (persistenceId: String, partition: Long, sequenceNr: Long, message: PersistentRepr) =>
       (JournalKey(persistenceId, partition, sequenceNr), message.payload)
 
-    def eventTable(keyspace: String = "akka", table: String = "messages"): RDD[(JournalKey, Any)] =
+    implicit val converter = new JournalEntryTypeConverter(system.settings.config)
+
+    TypeConverter.registerConverter(converter)
+
+    def eventTable(): RDD[(JournalKey, Any)] =
       context.cassandraTable(keyspace, table).select("processor_id", "partition_nr", "sequence_nr", "message").as(journalKeyEventPair).filter(_._2 != Ignore)
   }
 }
