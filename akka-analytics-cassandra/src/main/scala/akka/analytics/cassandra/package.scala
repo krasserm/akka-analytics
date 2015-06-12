@@ -37,13 +37,10 @@ package object cassandra {
   TypeConverter.registerConverter(JournalEntryTypeConverter)
 
   implicit class JournalSparkContext(context: SparkContext) {
-    val keyspace = context.getConf.get("spark.cassandra.journal.keyspace", "akka")
-    val table = context.getConf.get("spark.cassandra.journal.table", "messages")
-
     val journalKeyEventPair = (persistenceId: String, partition: Long, sequenceNr: Long, message: PersistentRepr) =>
       (JournalKey(persistenceId, partition, sequenceNr), message.payload)
 
-    def eventTable(): RDD[(JournalKey, Any)] =
+    def eventTable(keyspace: String = "akka", table: String = "messages"): RDD[(JournalKey, Any)] =
       context.cassandraTable(keyspace, table).select("processor_id", "partition_nr", "sequence_nr", "message").as(journalKeyEventPair).filter(_._2 != Ignore)
   }
 }

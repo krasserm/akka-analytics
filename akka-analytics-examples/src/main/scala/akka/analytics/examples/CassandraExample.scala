@@ -12,11 +12,9 @@ object CassandraExample extends App {
     .setAppName("CassandraExample")
     .setMaster("local[4]")
     .set("spark.cassandra.connection.host", "127.0.0.1")
-    .set("spark.cassandra.journal.keyspace", "akka") // optional, defaults to "akka"
-    .set("spark.cassandra.journal.table", "messages") // optional, defaults to "messages"
   val sc = new SparkContext(conf)
 
-  val rdd: RDD[(JournalKey, Any)] = sc.eventTable().cache()
+  val rdd: RDD[(JournalKey, Any)] = sc.eventTable(keyspace = "akka", table = "messages").cache()
 
   println("Unsorted:")
   rdd.collect().foreach(println)

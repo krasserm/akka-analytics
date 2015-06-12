@@ -30,8 +30,6 @@ object IntegrationSpec {
     .set("spark.cassandra.connection.host", "127.0.0.1")
     .set("spark.cassandra.connection.native.port", "9142")
     .set("spark.cassandra.connection.rpc.port", "9171")
-    .set("spark.cassandra.journal.keyspace", "akka")
-    .set("spark.cassandra.journal.table", "messages")
 
   class ExampleActor(probe: ActorRef) extends PersistentActor {
     override val persistenceId: String = "test"
