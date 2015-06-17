@@ -6,16 +6,14 @@ Large-scale event processing with [Akka Persistence](http://doc.akka.io/docs/akk
 - batch-process events from an [Akka Persistence Cassandra](https://github.com/krasserm/akka-persistence-cassandra) journal as Spark `RDD`.
 - stream-process events from an [Akka Persistence Kafka](https://github.com/krasserm/akka-persistence-kafka) journal as Spark Streaming `DStream`. 
 
-This project is in **early preview** state.
-
 Dependencies
 ------------
 
     resolvers += "krasserm at bintray" at "http://dl.bintray.com/krasserm/maven"
 
     libraryDependencies ++= Seq(
-      "com.github.krasserm" %% "akka-analytics-cassandra" % "0.2",
-      "com.github.krasserm" %% "akka-analytics-kafka" % "0.2"
+      "com.github.krasserm" %% "akka-analytics-cassandra" % “0.3”,
+      "com.github.krasserm" %% "akka-analytics-kafka" % “0.3”
     )
 
 Event batch processing
@@ -32,8 +30,6 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 
 import akka.analytics.cassandra._
-
-implicit val system = ActorSystem("example")
 
 val conf = new SparkConf()
   .setAppName("CassandraExample")
@@ -115,4 +111,34 @@ The stream of events (written by all persistent actors) is partially ordered i.e
 Custom deserialization
 ----------------------
 
-See [this ticket](https://github.com/krasserm/akka-analytics/issues/2#issuecomment-75361313) for details.
+If events have been persisted with a [custom serializer](http://doc.akka.io/docs/akka/2.3.11/scala/persistence.html#custom-serialization), the corresponding [Akka serializer](http://doc.akka.io/docs/akka/2.3.11/scala/serialization.html) configuration must be specified for event processing. For [event batch processing](#event-batch-processing) this is done as follows:
+
+```scala
+val system: ActorSystem = ...
+val jsc: JournalSparkContext = 
+  new SparkContext(sparkConfig).withSerializerConfig(system.settings.config)
+
+val rdd: RDD[(JournalKey, Any)] = jsc.eventTable()
+// ...
+
+jsc.context.stop()
+
+```
+
+For [event stream processing](#event-stream-processing) this is done in a similar way:
+
+```scala
+val system: ActorSystem = ...
+val jsc: JournalStreamingContext = 
+  new StreamingContext(sparkConfig, Seconds(1)).withSerializerConfig(system.settings.config)
+
+val es: DStream[Event] = jsc.eventStream(kafkaParams, kafkaTopics)
+// ...
+
+jsc.context.start()
+// ...
+
+jsc.context.stop()
+```
+
+Running examples are [`akka.analytics.cassandra.CustomSerializationSpec`](https://github.com/krasserm/akka-analytics/blob/master/akka-analytics-cassandra/src/test/scala/akka/analytics/cassandra/CustomSerializationSpec.scala) and [`akka.analytics.kafka.CustomSerializationSpec`](https://github.com/krasserm/akka-analytics/blob/master/akka-analytics-kafka/src/test/scala/akka/analytics/kafka/CustomSerializationSpec.scala).

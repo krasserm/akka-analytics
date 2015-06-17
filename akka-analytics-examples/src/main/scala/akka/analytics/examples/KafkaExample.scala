@@ -1,11 +1,11 @@
 package akka.analytics.examples
 
+import akka.analytics.kafka._
+import akka.persistence.kafka.Event
+
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.streaming.dstream.DStream
-
-import akka.analytics.kafka._
-import akka.persistence.kafka.Event
 
 object KafkaExample extends App {
   val sparkConf = new SparkConf()

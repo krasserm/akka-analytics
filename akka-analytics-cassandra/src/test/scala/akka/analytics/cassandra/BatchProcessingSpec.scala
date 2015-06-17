@@ -2,7 +2,6 @@ package akka.analytics.cassandra
 
 import akka.actor._
 import akka.persistence.PersistentActor
-import akka.serialization.Serializer
 import akka.testkit._
 
 import com.typesafe.config.ConfigFactory
@@ -29,8 +28,7 @@ object BatchProcessingSpec {
     .setAppName("CassandraExample")
     .setMaster("local[4]")
     .set("spark.cassandra.connection.host", "127.0.0.1")
-    .set("spark.cassandra.connection.native.port", "9142")
-    .set("spark.cassandra.connection.rpc.port", "9171")
+    .set("spark.cassandra.connection.port", "9142")
 
   class ExampleActor(probe: ActorRef) extends PersistentActor {
     override val persistenceId: String = "test"

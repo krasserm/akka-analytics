@@ -1,41 +1,50 @@
-package akka.analytics.cassandra
+package akka.analytics.kafka
+
+import java.io.File
 
 import akka.actor._
 import akka.persistence.PersistentActor
+import akka.persistence.kafka.Event
+import akka.persistence.kafka.server._
 import akka.serialization.Serializer
 import akka.testkit._
 
 import com.typesafe.config.ConfigFactory
 
-import org.apache.spark.rdd.RDD
+import org.apache.commons.io.FileUtils
 import org.apache.spark.SparkConf
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
+import org.apache.spark.streaming._
+import org.apache.spark.streaming.dstream.DStream
 import org.scalatest._
-
-import scala.concurrent.duration._
 
 object CustomSerializationSpec {
   val akkaConfig = ConfigFactory.parseString(
     """
       |akka.actor.serializers {
-      |  example = "akka.analytics.cassandra.CustomSerializationSpec$ExamplePayloadSerializer"
+      |  example = "akka.analytics.kafka.CustomSerializationSpec$ExamplePayloadSerializer"
       |}
       |akka.actor.serialization-bindings {
-      |  "akka.analytics.cassandra.CustomSerializationSpec$ExamplePayload" = example
+      |  "akka.analytics.kafka.CustomSerializationSpec$ExamplePayload" = example
       |}
-      |akka.persistence.journal.plugin = "cassandra-journal"
-      |akka.persistence.snapshot-store.plugin = "cassandra-snapshot-store"
-      |cassandra-journal.port = 9142
-      |cassandra-snapshot-store.port = 9142
+      |akka.persistence.journal.plugin = "kafka-journal"
+      |akka.persistence.snapshot-store.plugin = "kafka-snapshot-store"
+      |akka.test.single-expect-default = 10s
+      |kafka-journal.event.producer.request.required.acks = 1
+      |test-server.zookeeper.dir = target/test/zookeeper
+      |test-server.kafka.log.dirs = target/test/kafka
     """.stripMargin)
 
   val sparkConfig = new SparkConf()
-    .setAppName("CassandraExample")
+    .setAppName("events-consumer")
     .setMaster("local[4]")
-    .set("spark.cassandra.connection.host", "127.0.0.1")
-    .set("spark.cassandra.connection.port", "9142")
 
+  val kafkaTopics = Map("events" -> 2)
+  val kafkaParams = Map[String, String](
+    "group.id" -> "events-consumer",
+    "auto.commit.enable" -> "false",
+    "auto.offset.reset" -> "smallest",
+    "zookeeper.connect" -> "localhost:2181",
+    "zookeeper.connection.timeout.ms" -> "10000")
 
   case class ExamplePayload(value: String)
 
@@ -75,31 +84,35 @@ object CustomSerializationSpec {
 import CustomSerializationSpec._
 
 class CustomSerializationSpec extends TestKit(ActorSystem("test", akkaConfig)) with WordSpecLike with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
-  val jsc: JournalSparkContext = new SparkContext(sparkConfig).withSerializerConfig(akkaConfig)
+  var server: TestServer = _
+  var jsc: JournalStreamingContext = _
 
   override protected def beforeAll(): Unit = {
-    CassandraServer.start(60.seconds)
+    val systemConfig = system.settings.config
+    val serverConfig = new TestServerConfig(systemConfig.getConfig("test-server"))
+    server = new TestServer(serverConfig)
+    jsc = new StreamingContext(sparkConfig, Seconds(1)).withSerializerConfig(system.settings.config)
   }
 
   override protected def afterAll(): Unit = {
-    jsc.context.stop()
     TestKit.shutdownActorSystem(system)
-    CassandraServer.stop()
+    server.stop()
+    FileUtils.deleteDirectory(new File("target/test"))
   }
 
-  "akka-analytics-cassandra" must {
+  "akka-analytics-kafka" must {
     "support custom serialization" in {
       val actor = system.actorOf(Props(new ExampleActor(testActor)))
 
       actor ! ExamplePayload("a")
       expectMsg(ExamplePayload("a"))
 
-      val rdd: RDD[(JournalKey, Any)] = jsc.eventTable().cache()
+      val es: DStream[Event] = jsc.eventStream(kafkaParams, kafkaTopics)
+      es.foreachRDD(_.collect().foreach(testActor ! _))
 
-      val actual = rdd.collect().head
-      val expected = (JournalKey("test", 0, 1), ExamplePayload("a-ser-deser"))
-
-      actual should be(expected)
+      jsc.context.start()
+      expectMsg(Event("test", 1L, ExamplePayload("a-ser-deser")))
+      jsc.context.stop(stopSparkContext = true, stopGracefully = false)
     }
   }
 }

@@ -1,17 +1,13 @@
 package akka.analytics.examples
 
-import akka.actor.ActorSystem
+import akka.analytics.cassandra._
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 
-import akka.analytics.cassandra._
-
 object CassandraExample extends App {
-  implicit val system = ActorSystem("example")
-
   val conf = new SparkConf()
     .setAppName("CassandraExample")
     .setMaster("local[4]")
