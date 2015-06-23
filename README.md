@@ -108,8 +108,8 @@ case class Event(persistenceId: String, sequenceNr: Long, data: Any)
 
 The stream of events (written by all persistent actors) is partially ordered i.e. events with the same `persistenceId` are ordered by `sequenceNr` whereas the ordering of events with different `persistenceId` is not defined. Details about Kafka consumer `params` are described [here](http://kafka.apache.org/documentation.html#consumerconfigs).
 
-Custom deserialization
-----------------------
+Custom serialization
+--------------------
 
 If events have been persisted with a [custom serializer](http://doc.akka.io/docs/akka/2.3.11/scala/persistence.html#custom-serialization), the corresponding [Akka serializer](http://doc.akka.io/docs/akka/2.3.11/scala/serialization.html) configuration must be specified for event processing. For [event batch processing](#event-batch-processing) this is done as follows:
 
