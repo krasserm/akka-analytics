@@ -1,13 +1,14 @@
 package akka.analytics.cassandra
 
 import akka.analytics.cassandra.JournalContext.{Ignore, IsJournalContext}
-import com.datastax.spark.connector._
+import com.datastax.spark.connector.ColumnRef
+import com.datastax.spark.connector.streaming._
 import com.typesafe.config.{Config, ConfigFactory}
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.streaming.StreamingContext
 
-class JournalSparkContext(
-    sc: SparkContext,
+class JournalStreamingContext(
+    sc: StreamingContext,
     serializerConfig: Config = ConfigFactory.empty())
   extends IsJournalContext[RDD] {
 

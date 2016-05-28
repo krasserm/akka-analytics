@@ -1,19 +1,15 @@
 package akka.analytics.cassandra
 
+import scala.concurrent.duration._
+
 import akka.actor._
 import akka.persistence.PersistentActor
 import akka.serialization.Serializer
 import akka.testkit._
-
 import com.typesafe.config.ConfigFactory
-
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkConf
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
 import org.scalatest._
-
-import scala.concurrent.duration._
 
 object CustomSerializationSpec {
   val akkaConfig = ConfigFactory.parseString(
@@ -72,17 +68,24 @@ object CustomSerializationSpec {
   }
 }
 
-import CustomSerializationSpec._
+import akka.analytics.cassandra.CustomSerializationSpec._
 
-class CustomSerializationSpec extends TestKit(ActorSystem("test", akkaConfig)) with WordSpecLike with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
-  val jsc: JournalSparkContext = new SparkContext(sparkConfig).withSerializerConfig(akkaConfig)
+class CustomSerializationSpec
+    extends TestKit(ActorSystem("test", akkaConfig))
+    with WordSpecLike
+    with Matchers
+    with BeforeAndAfterAll
+    with BeforeAndAfterEach {
+
+  val jsc: JournalContext[SparkContext, RDD] =
+    new SparkContext(sparkConfig).withSerializerConfig(akkaConfig)
 
   override protected def beforeAll(): Unit = {
     CassandraServer.start(60.seconds)
   }
 
   override protected def afterAll(): Unit = {
-    jsc.context.stop()
+    jsc.sc.stop()
     TestKit.shutdownActorSystem(system)
     CassandraServer.stop()
   }
@@ -92,7 +95,7 @@ class CustomSerializationSpec extends TestKit(ActorSystem("test", akkaConfig)) w
       val actor = system.actorOf(Props(new ExampleActor(testActor)))
 
       actor ! ExamplePayload("a")
-      expectMsg(ExamplePayload("a"))
+      expectMsg(20.seconds, ExamplePayload("a"))
 
       val rdd: RDD[(JournalKey, Any)] = jsc.eventTable().cache()
 
